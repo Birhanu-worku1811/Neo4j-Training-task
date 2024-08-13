@@ -1,0 +1,85 @@
+// loading product entity
+LOAD CSV WITH HEADERS
+FROM 'https://drive.google.com/uc?export=download&id=1MLsOlELGLw0IgfTW8gB2gq390_B-9cft' AS row
+MERGE (p:Product {sku: row.sku})
+SET
+p.sku = row.sku,
+p.style = row.style,
+p.category = row.category,
+p.size = row.size,
+p.asin = row.asin
+
+// loading products to verify
+MATCH (p:Product) RETURN p LIMIT 25
+
+// adding constraint to make sku of a product unique
+CREATE CONSTRAINT Product_sku
+FOR (p:Product)
+REQUIRE p.sku IS UNIQUE
+
+// Loading customer entity
+LOAD CSV WITH HEADERS
+FROM 'https://drive.google.com/uc?export=download&id=1CUk95yUqT4GTMoQCP1EgVauIieZuDzVk' AS row
+MERGE (c:Customer {ship_city: row.ship_city})
+SET
+c.ship_city = row.ship_city,
+c.ship_state = row.ship_state,
+c.ship_postal_code = row.ship_postal_code,
+c.ship_country = row.ship_country
+
+
+// Loading order entity
+LOAD CSV WITH HEADERS
+FROM 'https://drive.google.com/uc?export=download&id=1PnY1uakc6H9PCcN08gyjWXnQb8sBbo45' AS row
+MERGE (o:Order {order_id: row.order_id})
+SET
+o.order_id = row.order_id,
+o.date = row.date,
+o.status = row.status,
+o.fulfilment = row.fulfilment,
+o.sales_channel = row.sales_channel,
+o.currency = row.currency,
+o.amount = row.amount,
+o.promotion_ids = row.promotion_ids
+
+// Loading merchant entity
+LOAD CSV WITH HEADERS
+FROM 'https://drive.google.com/uc?export=download&id=1ZHQfNROeJRXfLztvRsUFZhQrGWmmHc7S' AS row
+MERGE (m:Merchant {order_id: row.order_id})
+SET
+m.order_id = row.order_id,
+m.fulfilled_by = row.fulfilled_by
+
+
+// loading and creating relationship customer places order
+LOAD CSV WITH HEADERS
+FROM 'https://drive.google.com/uc?export=download&id=1MdZd3H0jvVLEDqmfG2H4gXVhuVXqS9Ow' AS row
+MATCH (c:Customer {ship_postal_code: row.ship_postal_code})
+MATCH (o:Order {order_id: row.order_id})
+MERGE (c)-[r:PLACES]->(o)
+SET
+r.ship_postal_code = row.ship_postal_code,
+r.order_id = row.order_id
+
+// loading and creating relationship order contains product
+LOAD CSV WITH HEADERS
+FROM 'https://drive.google.com/uc?export=download&id=1W2ShwSb72E5LGzYwfU1cGDOK97ye1U1l' AS row
+MATCH (o:Order {order_id: row.order_id})
+MATCH (p:Product {sku: row.sku})
+MERGE (o)-[r:CONTAINS]->(p)
+SET
+r.order_id = row.order_id,
+r.sku = row.sku
+
+// loading and creating relationship merchant fulfills order
+LOAD CSV WITH HEADERS
+FROM 'https://drive.google.com/uc?export=download&id=111C9oh1fFyDU4Ac5VCzoUh1BpxtYpt-p' AS row
+MATCH (m:Merchant {fulfilled_by: row.fulfilled_by})
+MATCH (o:Order {order_id: row.order_id})
+MERGE (m)-[r:FULFILLS]->(o)
+SET
+r.fulfilled_by = row.fulfilled_by,
+r.order_id = row.order_id
+
+
+
